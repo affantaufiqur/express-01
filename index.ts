@@ -4,7 +4,9 @@ import { books } from "./books";
 const app = express();
 const port = 3000;
 
-app.get("/", (req, res) => {
+app.use(express.json());
+
+app.get("/", (_, res) => {
   res.send("Hello World!");
   return;
 });
@@ -13,9 +15,12 @@ app.get("/books", (req, res) => {
   const query = req.query.query;
   if (query) {
     const filteredBooks = books.filter((book) =>
-      book.title.toLowerCase().includes((query as string).toLowerCase()),
+      book.title
+        .toLowerCase()
+        .trim()
+        .includes((query as string).toLowerCase().trim()),
     );
-    res.send(filteredBooks);
+    res.json(filteredBooks);
     return;
   }
   res.send(books);
@@ -25,8 +30,46 @@ app.get("/books", (req, res) => {
 app.get("/books/:id", (req, res) => {
   const id = Number(req.params.id);
   const book = books.find((book) => book.id === id);
-  res.send(book);
+  res.json(book);
   return;
+});
+
+app.post("/books", (req, res) => {
+  const { title, author, publication_year, genre, isbn } =
+    req.body as (typeof books)[number];
+  if (!title || !author || !publication_year || !genre || !isbn) {
+    res.status(400).json({ error: "Missing required fields" });
+    return;
+  }
+  const newBook = {
+    id: books.length + 1,
+    ...req.body,
+  };
+  books.push(newBook);
+  res.status(201).json(newBook);
+});
+
+app.put("/book/:id", (req, res) => {
+  const id = Number(req.params.id);
+  let book = books.find((item) => item.id === id);
+  if (!book) {
+    res.status(404).json({ error: "Book not found" });
+    return;
+  }
+  book = { id, ...req.body };
+  books[book!.id - 1] = book!;
+  res.json(books);
+});
+
+app.delete("/book/:id", (req, res) => {
+  const id = Number(req.params.id);
+  let book = books.find((item) => item.id === id);
+  if (!book) {
+    res.status(404).json({ error: "Book not found" });
+    return;
+  }
+  books.splice(book!.id - 1, 1);
+  res.json(books);
 });
 
 app.listen(port, () => console.log(`Example app listening on port ${port}`));
