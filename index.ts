@@ -1,14 +1,15 @@
 import express from "express";
 import { products } from "./products";
 import { cartSchema } from "./schema/cart";
-import { safeParse, Input } from "valibot";
+import { safeParse } from "valibot";
 
 const app = express();
 const port = 3031;
 
 app.use(express.json());
 
-let carts = [] as Input<typeof cartSchema>[];
+type product = (typeof products)[number] & { quantity: number };
+let cartData: product[] = [];
 
 app.get("/products", (_req, res) => {
   res.json({ data: products, status: 200 });
@@ -27,42 +28,49 @@ app.get("/products/:id", (req, res) => {
 app.post("/cart", (req, res) => {
   const parse = safeParse(cartSchema, req.body);
 
-  const isProductCanBeAddedToCart = function (index: number, quantity: number) {
-    function isInStock() {
-      if (!carts[index].inStock) {
-        res.json({ data: null, status: 400, message: "Product is not in stock" });
-        return;
-      }
+  function isInStock(product: (typeof products)[number]) {
+    return product.inStock;
+  }
+
+  function addToCart(product: (typeof products)[number], quantity: number) {
+    const sameProduct = cartData.findIndex((cart) => cart.id === product.id);
+
+    if (sameProduct === -1) {
+      const productWithQuantity = { ...product, quantity };
+      cartData.push(productWithQuantity);
+      res.json({
+        data: cartData,
+        status: 200,
+        message: "New product added to cart",
+      });
       return;
     }
 
-    function isAlreadyInCart() {
-      carts[index].quantity += quantity;
-      res.json({ data: carts, status: 200, message: "success" });
-      return;
-    }
-
-    return {
-      isInStock,
-      isAlreadyInCart,
-    };
-  };
-
-  if (parse.success) {
-    let quantity = parse.output.quantity;
-    const sameProduct = carts.find((cart) => cart.id === parse.output.id);
-    if (!sameProduct) {
-      carts.push(parse.output);
-      res.json({ data: carts, status: 200, message: "success" });
-      return;
-    }
-
-    isProductCanBeAddedToCart(carts.indexOf(sameProduct), quantity).isAlreadyInCart();
+    const updatedQuantity = cartData[sameProduct].quantity + quantity;
+    const updatedProduct = { ...cartData[sameProduct], quantity: updatedQuantity };
+    cartData[sameProduct] = updatedProduct;
+    res.json({
+      data: cartData,
+      status: 200,
+      message: "Product quantity increased",
+    });
     return;
   }
 
-  const message = parse.issues[0].message === "Invalid type" ? "Missing required fields" : parse.issues[0].message;
-  res.json({ data: null, status: 400, message });
+  if (parse.success) {
+    const findProduct = products.find((product) => product.id === parse.output.id);
+    if (!findProduct) {
+      res.json({ data: null, status: 404, message: "Product not found" });
+      return;
+    }
+
+    isInStock(findProduct)
+      ? addToCart(findProduct, parse.output.quantity)
+      : res.json({ data: cartData, status: 400, message: "Can't add product to cart, out of stock" });
+    return;
+  }
+
+  res.json({ data: null, status: 400, message: "Bad request" });
   return;
 });
 
