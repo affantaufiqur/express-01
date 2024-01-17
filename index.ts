@@ -26,18 +26,35 @@ app.get("/products/:id", (req, res) => {
 
 app.post("/cart", (req, res) => {
   const parse = safeParse(cartSchema, req.body);
-  if (parse.success) {
-    let quantity = parse.output.quantity;
-    const sameProduct = carts.find((cart) => cart.id === parse.output.id);
 
-    if (sameProduct) {
-      carts[carts.indexOf(sameProduct)].quantity += quantity;
+  const isProductCanBeAddedToCart = function (index: number, quantity: number) {
+    function isInStock() {
+      res.json({ data: null, status: 400, message: "Product is not in stock" });
+      return;
+    }
+
+    function isAlreadyInCart() {
+      carts[index].quantity += quantity;
       res.json({ data: carts, status: 200, message: "success" });
       return;
     }
 
-    carts.push(parse.output);
-    res.json({ data: carts, status: 200, message: "success" });
+    return {
+      isInStock,
+      isAlreadyInCart,
+    };
+  };
+
+  if (parse.success) {
+    let quantity = parse.output.quantity;
+    const sameProduct = carts.find((cart) => cart.id === parse.output.id);
+    if (!sameProduct) {
+      carts.push(parse.output);
+      res.json({ data: carts, status: 200, message: "success" });
+      return;
+    }
+
+    isProductCanBeAddedToCart(carts.indexOf(sameProduct), quantity).isAlreadyInCart();
     return;
   }
 
