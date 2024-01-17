@@ -29,7 +29,10 @@ app.post("/cart", (req, res) => {
 
   const isProductCanBeAddedToCart = function (index: number, quantity: number) {
     function isInStock() {
-      res.json({ data: null, status: 400, message: "Product is not in stock" });
+      if (!carts[index].inStock) {
+        res.json({ data: null, status: 400, message: "Product is not in stock" });
+        return;
+      }
       return;
     }
 
