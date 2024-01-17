@@ -1,75 +1,54 @@
 import express from "express";
-import { books } from "./books";
+import { products } from "./products";
+import { object, string, safeParse, number, boolean, minLength, integer, toMinValue } from "valibot";
 
 const app = express();
-const port = 3000;
+const port = 3031;
 
 app.use(express.json());
 
-app.get("/", (_, res) => {
-  res.send("Hello World!");
+app.get("/products", (_req, res) => {
+  res.json({ data: products, status: 200 });
+});
+
+app.get("/products/:id", (req, res) => {
+  const id = Number(req.params.id);
+  const product = products.find((product) => product.id === id);
+  if (product) {
+    res.json({ data: product, status: 200 });
+  }
+  res.json({ data: null, status: 404 });
   return;
 });
 
-app.get("/books", (req, res) => {
-  const query = req.query.query;
-  if (query) {
-    const filteredBooks = books.filter((book) =>
-      book.title
-        .toLowerCase()
-        .trim()
-        .includes((query as string).toLowerCase().trim()),
-    );
-    res.json(filteredBooks);
+app.post("/cart", (req, res) => {
+  const cartSchema = object({
+    id: number([integer(), toMinValue(1)]),
+    name: string([minLength(1)]),
+    category: string([minLength(1)]),
+    price: number([toMinValue(1)]),
+    inStock: boolean(),
+    description: string([minLength(1)]),
+  });
+
+  const parse = safeParse(cartSchema, req.body);
+  if (parse.success) {
+    res.json({ data: parse.output, status: 200, message: "success" });
     return;
   }
-  res.send(books);
+  const message = parse.issues[0].message === "Invalid type" ? "Missing required fields" : parse.issues[0].message;
+  res.json({ data: null, status: 400, message });
   return;
 });
 
-app.get("/books/:id", (req, res) => {
-  const id = Number(req.params.id);
-  const book = books.find((book) => book.id === id);
-  res.json(book);
+app.get("/cart", (_req, res) => {
+  res.json({ cart: "" });
   return;
 });
 
-app.post("/books", (req, res) => {
-  const { title, author, publication_year, genre, isbn } =
-    req.body as (typeof books)[number];
-  if (!title || !author || !publication_year || !genre || !isbn) {
-    res.status(400).json({ error: "Missing required fields" });
-    return;
-  }
-  const newBook = {
-    id: books.length + 1,
-    ...req.body,
-  };
-  books.push(newBook);
-  res.status(201).json(newBook);
-});
-
-app.put("/book/:id", (req, res) => {
-  const id = Number(req.params.id);
-  let book = books.find((item) => item.id === id);
-  if (!book) {
-    res.status(404).json({ error: "Book not found" });
-    return;
-  }
-  book = { id, ...req.body };
-  books[book!.id - 1] = book!;
-  res.json(books);
-});
-
-app.delete("/book/:id", (req, res) => {
-  const id = Number(req.params.id);
-  let book = books.find((item) => item.id === id);
-  if (!book) {
-    res.status(404).json({ error: "Book not found" });
-    return;
-  }
-  books.splice(book!.id - 1, 1);
-  res.json(books);
+app.get("/order", (_req, res) => {
+  res.json({ orders: "" });
+  return;
 });
 
 app.listen(port, () => console.log(`Example app listening on port ${port}`));
