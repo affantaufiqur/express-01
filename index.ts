@@ -20,11 +20,11 @@ app.get("/products", (_req, res) => {
 
 app.get("/products/:id", (req, res) => {
   if (!req.params.id) {
-    handleError(400, "Missing required fields");
+    handleError(res, 400, "Missing required fields");
     return;
   }
   if (typeof req.params.id !== "number") {
-    handleError(400, "ID must be a number");
+    handleError(res, 400, "ID must be a number");
     return;
   }
   const id = Number(req.params.id);
@@ -33,7 +33,7 @@ app.get("/products/:id", (req, res) => {
     res.json({ data: product, status: 200, message: "Product found" });
     return;
   }
-  handleError(404, "Product not found");
+  handleError(res, 404, "Product not found");
   return;
 });
 
@@ -43,7 +43,7 @@ app.post("/cart", (req, res) => {
     const findProduct = products.find((product) => product.id === parse.output.id);
 
     if (!findProduct) {
-      handleError(404, "Product not found");
+      handleError(res, 404, "Product not found");
       return;
     }
 
@@ -72,11 +72,13 @@ app.post("/cart", (req, res) => {
       return;
     }
 
-    findProduct.inStock ? addToCart(findProduct, parse.output.quantity) : handleError(400, "Cant add product to cart");
+    findProduct.inStock
+      ? addToCart(findProduct, parse.output.quantity)
+      : handleError(res, 400, "Cant add product to cart");
     return;
   }
 
-  handleError(400, "Missing required fields");
+  handleError(res, 400, "Missing required fields");
   return;
 });
 
@@ -86,18 +88,23 @@ app.get("/cart", (_req, res) => {
 });
 
 app.delete("/cart/:id", (req, res) => {
+  if (cartData.length === 0) {
+    handleError(res, 400, "Cart is empty");
+    return;
+  }
+  console.log("run here");
   if (!req.params.id) {
-    handleError(400, "Missing required fields");
+    handleError(res, 400, "Missing required fields");
     return;
   }
-  if (typeof req.params.id !== "number") {
-    handleError(400, "ID must be a number");
+  const isValid = parseInt(req.params.id, 10);
+  if (isNaN(isValid)) {
+    handleError(res, 400, "ID must be a number");
     return;
   }
-  const id = Number(req.params.id);
-  const product = cartData.findIndex((cart) => cart.id === id);
+  const product = cartData.findIndex((cart) => cart.id === Number(req.params.id));
   if (product === -1) {
-    handleError(404, "Product not found");
+    handleError(res, 404, "Product not found");
     return;
   }
   cartData.splice(product, 1);
@@ -107,7 +114,7 @@ app.delete("/cart/:id", (req, res) => {
 
 app.post("/checkout", (_req, res) => {
   if (cartData.length === 0) {
-    handleError(400, "Cart is empty");
+    handleError(res, 400, "Cart is empty");
     return;
   }
   checkoutData = cartData;
