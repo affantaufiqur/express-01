@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "./build/index.js",
-  "type": "commonjs",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
@@ -21,8 +21,10 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
+    "dotenv": "^16.4.0",
     "express": "^4.18.2",
     "express-validator": "^7.0.1",
+    "mysql2": "^3.8.0",
     "valibot": "^0.26.0"
   }
 }
