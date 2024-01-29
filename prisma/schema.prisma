@@ -1,30 +1,30 @@
 generator client {
-  provider = "prisma-client-js"
+    provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+    provider = "mysql"
+    url      = env("DATABASE_URL")
 }
 
 model carts {
-  id         Int       @id @default(autoincrement())
-  cart_id    String    @db.VarChar(255)
-  product_id Int?
-  quantity   Int?
-  price      Decimal?  @db.Decimal(10, 2)
-  created_at DateTime? @default(now()) @db.Timestamp(0)
-  products   products? @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "carts_ibfk_1")
+    id         Int       @id @default(autoincrement())
+    cart_id    String    @db.VarChar(255)
+    product_id Int?
+    quantity   Int?
+    price      Decimal?  @db.Decimal(10, 2)
+    created_at DateTime? @default(now()) @db.Timestamp(0)
+    products   products? @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "carts_ibfk_1")
 
-  @@unique([cart_id, product_id], map: "cart_product_unique")
-  @@index([product_id], map: "product_id")
+    @@unique([cart_id, product_id], map: "cart_product_unique")
+    @@index([product_id], map: "product_id")
 }
 
 model products {
-  id          Int     @id @default(autoincrement())
-  name        String? @db.VarChar(100)
-  price       Float   @default(0) @db.Float
-  in_stock    Boolean @default(true)
-  description String? @db.VarChar(255)
-  carts       carts[]
+    id          Int     @id @default(autoincrement())
+    name        String? @db.VarChar(100)
+    price       Float   @default(0) @db.Float
+    in_stock    Boolean @default(true)
+    description String? @db.VarChar(255)
+    carts       carts[]
 }
