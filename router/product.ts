@@ -2,16 +2,16 @@ import { Router } from "express";
 import prisma from "../config/prisma.js";
 import { safeParse } from "valibot";
 import { productSchema, updateProductSchema } from "../schema/product.js";
-import { products } from "../products.js";
+import { insertProduct, updateProduct } from "../app/product-controller.js";
 
 const app = Router();
 
 app.get("/products", async (_req, res) => {
   try {
-    const testing = await prisma.products.findMany();
-    return res.json(testing);
+    const data = await prisma.products.findMany();
+    return res.json({ data, message: "Success" });
   } catch (err) {
-    return res.json({ message: "Error" });
+    return res.json({ message: "Error", code: "ERR_GET_PRODUCTS" });
   }
 });
 
@@ -45,7 +45,7 @@ app.post("/products", async (req, res) => {
   }
   const data = parse.output;
   try {
-    await prisma.products.create({ data });
+    await insertProduct(data);
     res.json({ message: "Success adding new product" });
     return;
   } catch (err) {
@@ -67,14 +67,7 @@ app.put("/products/:id", async (req, res) => {
     return res.json({ message: "Too many fields", code: "INVALID_PARAMS_TOO_MANY_FIELDS" });
   }
   try {
-    await prisma.$transaction(async (tx) => {
-      const product = await tx.products.findUnique({ where: { id } });
-      if (!product) {
-        return res.json({ message: "Product not found" });
-      }
-      await tx.products.update({ where: { id }, data: data.output });
-      return;
-    });
+    await updateProduct({ data: data.output, id });
     res.json({ message: "Success updating product" });
     return;
   } catch (err) {
