@@ -1,13 +1,14 @@
 import { Router } from "express";
-import { getAllProducts, getProductById } from "../app/functions.js";
+import prisma from "../config/prisma.js";
+import { safeParse } from "valibot";
+import { productSchema } from "../schema/product.js";
 
 const app = Router();
 
 app.get("/products", async (_req, res) => {
   try {
-    const [results] = await getAllProducts();
-    if (results.length === 0) return res.json({ message: "No products found" });
-    return res.json(results);
+    const testing = await prisma.products.findMany();
+    return res.json(testing);
   } catch (err) {
     return res.json({ message: "Error" });
   }
@@ -19,11 +20,35 @@ app.get("/products/:id", async (req, res) => {
     return res.status(400).json({ error: "Invalid product id" });
   }
   try {
-    const [results] = await getProductById(id);
-    if (results.length === 0) return res.json({ message: "Product not found" });
-    return res.json(results);
+    const data = await prisma.products.findUnique({
+      where: { id },
+      select: {
+        name: true,
+        in_stock: true,
+        price: true,
+      },
+    });
+    if (!data) {
+      return res.json({ message: "Product not found" });
+    }
+    return res.json({ data, messsage: "Success" });
   } catch (err) {
     return res.json({ message: "Error" });
+  }
+});
+
+app.post("/products", async (req, res) => {
+  const parse = safeParse(productSchema, req.body);
+  if (parse.issues) {
+    return res.json({ message: parse.issues[0].message, code: "INVALID_PARAMS" });
+  }
+  const data = parse.output;
+  try {
+    await prisma.products.create({ data });
+    res.json({ message: "Success adding new product" });
+    return;
+  } catch (err) {
+    return res.json({ message: "Error", code: "INS_ERR_PRODUCTS_1" });
   }
 });
 
