@@ -27,6 +27,7 @@ export async function updateProduct({ data, id }: { data: Infer<typeof updatePro
           code: "UPD_NOT_FOUND_PRODUCTS_1",
         };
       }
+
       return await tx.products.update({
         where: { id },
         data,
