@@ -19,15 +19,15 @@ app.post("/cart", async (req, res) => {
   const cartId = parse.output.cart_id;
 
   try {
-    return await prisma.$transaction(async (tx) => {
-      const getProduct = await findUniqueProduct(productId);
-      if (!getProduct) {
-        return res.json({ message: "Product did not exist" });
-      }
-      if (!getProduct.in_stock) {
-        return res.json({ message: "Product is out of stock" });
-      }
+    const getProduct = await findUniqueProduct(productId);
+    if (!getProduct) {
+      return res.json({ message: "Product did not exist" });
+    }
+    if (!getProduct.in_stock) {
+      return res.json({ message: "Product is out of stock" });
+    }
 
+    return await prisma.$transaction(async (tx) => {
       const getCart = await findByCartId(cartId);
       const finalData = { ...parse.output, price: parse.output.quantity * getProduct.price };
 
@@ -72,9 +72,11 @@ app.get("/cart", async (req, res) => {
     if (!getCart.data) {
       return res.status(404).json({ message: "Cart not found" });
     }
+
     const totalItem = getCart.data.reduce((a, b) => a + b.quantity!, 0);
     const totalPrice = getCart.data.reduce((a, b) => a + Number(b.price!), 0);
     const finalData = { ...getCart, totalItem, total_price: `$${totalPrice}` };
+
     return res.json(finalData);
   } catch (err) {
     return res.json({ message: "Error", code: "ERR_GET_CART_BY_ID" });
